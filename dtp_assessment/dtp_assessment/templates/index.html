@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Task Manager — DTP Assessment</title>
+</head>
+<body>
+  <h1>Task Manager</h1>
+
+  <form id="task-form">
+    <input id="title" placeholder="Title" required />
+    <input id="due" type="date" />
+    <input id="description" placeholder="Description" />
+    <button type="submit">Create Task</button>
+  </form>
+
+  <h2>Tasks</h2>
+  <ul id="tasks"></ul>
+
+<script>
+const apiRoot = '/api/tasks/';
+
+async function fetchTasks(){
+  const res = await fetch(apiRoot);
+  const data = await res.json();
+  const ul = document.getElementById('tasks');
+  ul.innerHTML = '';
+  data.forEach(t => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <strong>${t.title}</strong> 
+      ${t.due_date ? ` (due ${t.due_date})` : ''}
+      <br>${t.description || ''}
+      <br>
+      Completed: <input type="checkbox" data-id="${t.id}" ${t.completed ? 'checked' : ''}/>
+      <button data-toggle="${t.id}">Toggle</button>
+      <button data-delete="${t.id}">Delete</button>
+    `;
+    ul.appendChild(li);
+  });
+}
+
+document.getElementById('task-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const title = document.getElementById('title').value;
+  const description = document.getElementById('description').value;
+  const due_date = document.getElementById('due').value || null;
+
+  await fetch(apiRoot, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({title, description, due_date})
+  });
+  document.getElementById('task-form').reset();
+  fetchTasks();
+});
+
+document.getElementById('tasks').addEventListener('click', async (e)=>{
+  if(e.target.dataset.toggle){
+    const id = e.target.dataset.toggle;
+    await fetch(`${apiRoot}${id}/toggle/`, {method:'POST'});
+    fetchTasks();
+  }
+  if(e.target.dataset.delete){
+    const id = e.target.dataset.delete;
+    await fetch(`${apiRoot}${id}/`, {method:'DELETE'});
+    fetchTasks();
+  }
+});
+
+window.addEventListener('load', fetchTasks);
+</script>
+</body>
+</html>
